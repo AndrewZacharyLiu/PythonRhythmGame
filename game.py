@@ -1,13 +1,27 @@
 import pygame
 import cv2
 import time
+from pydub import AudioSegment
+import simpleaudio as sa
 
-# Initialize Pygame and mixer
 pygame.init()
 pygame.mixer.init()
 
-# Load the extracted audio
-pygame.mixer.music.load('hell.wav')
+# Load the audio file
+audio = AudioSegment.from_file("hell.wav")
+
+# Define a function to play audio from a specific start time
+def play_audio_from(timestamp_ms):
+    # Extract the segment of audio starting from the given timestamp
+    segment = audio[timestamp_ms:]
+    # Play the extracted audio segment
+    play_obj = sa.play_buffer(
+        segment.raw_data,
+        num_channels=segment.channels,
+        bytes_per_sample=segment.sample_width,
+        sample_rate=segment.frame_rate
+    )
+    return play_obj
 
 # Open the video file using OpenCV
 cap = cv2.VideoCapture('hell.mp4')
@@ -37,11 +51,12 @@ def detect_face():
 
     return len(faces) > 0, frame, faces  # Returns True if at least one face is detected
 
+
 def play_video():
     """Plays video, synchronizes with audio, and overlays a square if a face is detected."""
-    video_offset = 0.12  # Adjust this offset for better audio-video sync
+    video_offset = -0.05  # Adjust this offset for better audio-video sync
     start_time = time.time()
-    pygame.mixer.music.play()
+    play_audio_from((time.time() - start_time) * 1000)
 
     while cap.isOpened():
         elapsed_time = time.time() - start_time - video_offset
@@ -83,51 +98,31 @@ def play_video():
     pygame.quit()
 
 def main():
-    """Displays a start button, shows live webcam feed with face detection, and starts the video on click."""
+    """Displays a start button and starts the video on click."""
+    # Define button properties
     button_color = (0, 255, 0)
     button_rect = pygame.Rect(width // 2 - 50, height // 2 - 25, 100, 50)
     button_text = pygame.font.SysFont(None, 36).render('Start', True, (0, 0, 0))
 
-    while True:
-        # Show webcam footage with face detection
-        ret, frame = webcam.read()
-        if not ret:
-            break
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-
-        # Draw rectangles around detected faces
-        for (x, y, w, h) in faces:
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-        cv2.imshow("Webcam Feed - Face Detection", frame)
-
-        # Display Pygame start button
+    running = True
+    while running:
+        # Fill the screen with black
         screen.fill((0, 0, 0))
+
+        # Draw the start button
         pygame.draw.rect(screen, button_color, button_rect)
         screen.blit(button_text, (button_rect.x + 10, button_rect.y + 10))
         pygame.display.update()
 
-        # Handle events
+        # Handle Pygame events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                webcam.release()
-                cv2.destroyAllWindows()
-                pygame.quit()
-                return
+                running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if button_rect.collidepoint(event.pos):
-                    cv2.destroyAllWindows()
                     play_video()
-                    return
+                    running = False
 
-        # Press 'q' to quit
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    webcam.release()
-    cv2.destroyAllWindows()
     pygame.quit()
 
 if __name__ == '__main__':
