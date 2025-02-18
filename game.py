@@ -40,6 +40,7 @@ height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Video Playback')
 
+
 def detect_face():
     """Detects faces using OpenCV's Haar cascade model and returns face coordinates."""
     ret, frame = webcam.read()
@@ -57,7 +58,7 @@ def play_video():
     video_offset = -0.05  # Adjust this offset for better audio-video sync
     start_time = time.time()
     play_audio_from((time.time() - start_time) * 1000)
-
+    prev_time = 0
     while cap.isOpened():
         elapsed_time = time.time() - start_time - video_offset
         elapsed_time = max(0, elapsed_time)  
@@ -77,7 +78,11 @@ def play_video():
 
         # Blit the frame to the screen
         screen.blit(frame_surface, (0, 0))
-
+        fps = str(round(1.0 / (elapsed_time - prev_time)))
+        prev_time = elapsed_time
+        fps_font = pygame.font.SysFont("Arial", 18)
+        fps_text = fps_font.render(fps, True, pygame.Color("white"))
+        screen.blit(fps_text, (10, 10))  # Position the FPS at the top-left corner
         # Detect face and draw a square if detected
         face_detected, _, _ = detect_face()
         if face_detected:
